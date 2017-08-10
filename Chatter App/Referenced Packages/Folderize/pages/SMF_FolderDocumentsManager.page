@@ -1,0 +1,115 @@
+<apex:page controller="sharem.SMF_FolderDocsManagerCtrl" extensions="sharem.SMF_DocsViewerExtension,sharem.SMF_FolderDocsManagerExt"
+  tabStyle="Folderize__tab" title="Add Docs to Folder">
+
+
+<apex:stylesheet value="{!URLFOR($Resource.sharem__folderize_resources, 'css/styles.css')}" />
+<script type="text/javascript" src="{!URLFOR($Resource.sm_jqgrid, '/js/jquery-1.9.0.min.js')}"></script>
+<script type="text/javascript" src="{!URLFOR($Resource.folderize_resources, 'js/scripts.js')}"></script>
+
+
+<script type="text/javascript">
+	//configure the "scripts.js" file
+	SMF_PAGE_OPTIONS.fixPageContainer = true;
+</script>
+
+
+<!-- HEADER -->
+<div>
+	<div class="page-header-cell" style="padding: 0;">
+		<span class="caption-logo smf-icon-logo-small"></span>
+	</div>
+	<div class="page-header-cell">
+		<span class="page-title">
+			Add Documents to Folder
+			<apex:outputText rendered="{!folder != null}"> "{!folder.Name}"</apex:outputText>
+		</span>
+	</div>
+	<div class="page-header-cell">
+		<div style="display: table-cell;"><span class="smf-icon-in-text16 smf-icon-info16" title="Info"></span></div>
+		<div class="page-header-info">
+			These are documents previously uploaded to Salesforce Files/Content, that you may add to this folder.<br/>
+			To add documents not previously uploaded, return to the Folderize main page and use drag-and-drop.
+		</div>
+	</div>
+</div>
+
+
+<apex:outputPanel rendered="{!folder == null}" styleClass="sfc-messages sfc-error" layout="block">
+	{!IF(isAccessible, 'The folder has not been found.', 'You do not have enough permissions to use this page.')}
+</apex:outputPanel>
+
+
+<apex:outputPanel rendered="{!folder != null}">
+	
+	<apex:stylesheet value="{!URLFOR($Resource.sharem__folderize_resources, '/jquery-ui-1.10.4/css/cupertino/jquery-ui.min.css')}" />
+	<apex:stylesheet value="{!URLFOR($Resource.sharem__sm_jqgrid, '/css/ui.jqgrid.css')}" />
+	
+	<script type="text/javascript" src="{!URLFOR($Resource.folderize_resources, '/jquery-ui-1.10.4/js/jquery-ui.min.js')}"></script>
+	<script type="text/javascript" src="{!URLFOR($Resource.sm_jqgrid, '/js/i18n/grid.locale-en.js')}"></script>
+	<script type="text/javascript" src="{!URLFOR($Resource.sm_jqgrid, '/js/jquery.jqGrid.min.js')}"></script>
+	<script type="text/javascript" src="{!URLFOR($Resource.folderize_resources, 'js/utils/jqGridUtils.js')}"></script>
+	<script type="text/javascript" src="{!URLFOR($Resource.folderize_resources, 'js/utils/filtersManager.js')}"></script>
+	<script type="text/javascript" src="{!URLFOR($Resource.folderize_resources, 'js/folderDocumentsManager.js')}"></script>
+	
+	<!-- ADD the MANAGER of MESSAGES -->
+	<c:MessagesManager />
+	
+	
+	<script type="text/javascript">
+	
+	var MAX_FILES_IN_SERVER_RESPONSE = {!docsLimitInServerResponse};
+	//configure vars from the "jqGridUtils.js" file
+	SITE_PREFIX = "{!$Site.Prefix}";
+
+	var folderIdRaw = "{!JSENCODE(folderIdRaw)}";
+	var versionsFilter = {fieldCriterions: []};
+	var grid;
+	var uploadNewFilesDialog;
+
+	$(function()
+	{
+		//- initialize the table of documents
+		var docColumnsVisibility = JSON.parse('{!JSENCODE(docColumnsVisibility_Json)}');
+		var docsSortingParameter = JSON.parse('{!JSENCODE(docsSortingParameter_Json)}');
+		initDocumentsTable(docColumnsVisibility, docsSortingParameter);
+
+		//- refresh the list of documents
+		refreshDocumentsTable(null, true);
+
+		//- show main block
+		$("#mainContent").css({"visibility": "visible"});
+	});
+	
+	</script>
+	
+	
+	
+	<div style="margin: 5px 0px;">
+		<input type="button" onclick="addSelectedFilesToFolder();" value="Add Documents to Folder" class="btn"/>
+		
+		<span id="resultsPanel" class="sfc-messages sfc-success inline" style="display: none;">
+			Done. Click the folder to refresh and see the documents you added.
+		</span>
+	</div>
+	
+	<div id="serverSideFilter"></div>
+	
+	<div id="mainContent" style="visibility: hidden;">
+	
+		<!-- THE TABLE OF FILES -->
+		<div id="docsPanel">
+			<div id="tableContainer">
+				<table id="docsTable"><tr><td></td></tr></table>
+				<div id="paginator"></div>
+			</div>
+		</div>
+
+	</div>
+	
+</apex:outputPanel>
+
+<div style="margin-top: 5px;">
+	Copyright © 2013-2017 ShareMethods LLC All rights reserved
+</div>
+
+</apex:page>

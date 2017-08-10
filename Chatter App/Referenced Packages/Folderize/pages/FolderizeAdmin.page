@@ -1,0 +1,502 @@
+<apex:page controller="sharem.FolderizeAdminController" tabStyle="Folderize__tab" title="Folderize Administration">
+	
+<apex:stylesheet value="{!URLFOR($Resource.sharem__folderize_resources, 'css/styles.css')}"/>
+<apex:stylesheet value="{!URLFOR($Resource.sharem__folderize_resources, 'css/folderizeAdmin.css')}"/>
+
+<script type="text/javascript" src="{!URLFOR($Resource.sm_jqgrid, '/js/jquery-1.9.0.min.js')}"></script>
+<script type="text/javascript" src="{!URLFOR($Resource.folderize_resources, 'js/scripts.js')}"></script>
+<script type="text/javascript" src="{!URLFOR($Resource.folderize_resources, 'js/utils/checkboxToggle.js')}"></script>
+
+
+	
+<script type="text/javascript">
+	//configure the "scripts.js" file
+	SMF_PAGE_OPTIONS.fixPageContainer = true;
+</script>
+
+
+
+<!-- USAGE REPORTS MANAGER -->
+<c:UsageReportsManager />
+
+<div>
+	<span class="caption-logo smf-icon-logo-small"></span>
+	<span class="page-title">
+		Folderize Administration
+	</span>
+</div>
+
+<apex:outputPanel rendered="{!NOT(isAccessible_AdminPage)}">
+	You do not have access to this page. Please contact your administrator if access is necessary. 
+</apex:outputPanel>
+
+<apex:form id="form" rendered="{!isAccessible_AdminPage}">
+	
+	<apex:actionStatus id="statusLoader" onstart="statusLoader.showLoader();" onstop="statusLoader.hideLoader();" />
+	
+	
+	
+	<!-- NOTIFICATIONS -->
+	<apex:pageBlock title="Notifications">
+		
+		<apex:outputPanel layout="block" styleClass="notification warning" rendered="{!showNotice_LimitOfDocsReached}">
+			*<span class="smf-icon-in-text16 smf-icon-warning16"></span>The document limit has been reached for this Folderize edition.
+		</apex:outputPanel>
+		
+		<apex:outputPanel layout="block" styleClass="notification" rendered="{!isLimitOfSmDocsEnabled}">
+			* This Folderize edition limits the number of documents used to maximum {!currentSmDocumentsLimit}.
+			For additional details on how limits work, see the <a href="{!URL_UG_LIMITS}" target="_blank">Administration Guide</a>
+			or contact <a href="mailto:folderize@sharemethods.com?subject=Folderize administration">ShareMethods</a>.
+		</apex:outputPanel>
+		
+		<div class="notification">
+			* Your organization now has {!smDocumentsCount} documents used in Folderize. You may or may not see
+			all of these in folders, depending on folder tags, direct mappings, and sharing settings.
+		</div>
+		
+		<div class="notification">
+			* If you want to check or change your current edition please go to
+			<a href="{!$Page.SMF_LicenseManager}" class="smf-button-small"><span class="smf-button-icon smf-icon-arrow"></span>Folderize Edition Manager</a>
+		</div>
+		
+		<div class="notification">
+			* You are using version {!currentAppVersion}. To see if there is a newer version, go to the
+			<a href="https://appexchange.salesforce.com/listingDetail?listingId=a0N3000000B4caiEAB" target="_blank">AppExchange Folderize page</a>
+			and click the Details tab. To upgrade to the latest version, click "Get It Now".
+		</div>
+		
+		<div class="notification">
+			* Bulk uploading is possible with Folderize Replicator. It copies folder structures (with their files) from a PC, server, or from SharePoint.
+			See the <a href="{!URL_UG_REPLICATOR}" target="_blank">Administration Guide</a> for details.
+		</div>
+		
+		<apex:repeat value="{!dynamicNotifications}" var="notification">
+			<div class="notification">* {!notification}</div>
+		</apex:repeat>
+	</apex:pageBlock>
+	<br/>
+	
+	
+	
+	<!-- BASIC UI SETTINGS -->
+	<apex:pageBlock title="Settings">
+		<!-- Auto Expand Folders -->
+		<hr/>
+		<apex:actionRegion >
+		<apex:outputPanel id="panel_ExpandFolders">
+			<apex:actionFunction action="{!changeFoldersAutoExpansion}" reRender="panel_ExpandFolders" name="af_changeFoldersAutoExpansion" status="statusLoader" />
+			
+			<apex:pageMessages />
+			
+			<div class="form-row">
+				<div class="form-cell-label" style="width: 267px;">On the main page, expand folders automatically</div>
+				<div class="form-cell-value">
+					<apex:inputCheckbox id="cb_ExpandFolders" value="{!autoExpandFolders}"/>
+				</div>
+
+<script>
+	$(function()
+	{
+		$(escapeSfId("{!$Component.cb_ExpandFolders}")).smfCheckboxToggle("initialize", {
+			confirmation: "Are you sure you want to change this setting?",
+			onValueChanged: af_changeFoldersAutoExpansion
+		});
+	});
+</script>
+			</div>
+
+		</apex:outputPanel>
+		</apex:actionRegion>
+		
+		
+		<!-- Show Filter Toolbar -->
+		<hr/>
+		<apex:actionRegion >
+		<apex:outputPanel id="panel_ShowFilterToolbar">
+			<apex:actionFunction action="{!changeFilterVisibility}" reRender="panel_ShowFilterToolbar" name="af_changeFilterVisibility" status="statusLoader" />
+			
+			<apex:pageMessages />
+		
+			<div class="form-item-h">
+				<div class="form-cell-label" style="width: 267px;">On the main page, show filter bar by default</div>
+				<div class="form-cell-value">
+					<apex:inputCheckbox id="cb_ShowFilterToolbar" value="{!showFilterToolbar}" />
+				</div>
+			</div>
+			<div class="line-end"></div>
+			
+			<div class="info-panel">
+				<span title="Info" class="smf-icon-in-text16 smf-icon-info16"></span>
+				When not shown, users may access the filter bar by an option in the settings menu.
+			</div>
+
+<script>
+	$(function()
+	{
+		$(escapeSfId("{!$Component.cb_ShowFilterToolbar}")).smfCheckboxToggle("initialize", {
+			confirmation: "Are you sure you want to change this setting?",
+			onValueChanged: af_changeFilterVisibility
+		});
+	});
+</script>
+		
+		</apex:outputPanel>
+		</apex:actionRegion>
+		
+		
+		<!-- Change Folders Sorting -->
+		<hr/>
+		<apex:actionRegion >
+		<apex:outputPanel id="panel_FoldersSorting" layout="none">
+		
+			<div class="form-item-h">
+				<div class="form-cell-label def-setting-label">Folders sorting field</div>
+				<div class="form-cell-value input-200">
+					<apex:selectList value="{!foldersSortingParameter.name}" size="1">
+						<apex:selectOption itemValue="Name" itemLabel="Name" />
+						<apex:selectOption itemValue="CreatedDate" itemLabel="Created Date" />
+						<apex:selectOption itemValue="LastModifiedDate" itemLabel="Last Update of Folder Name" /> 
+					</apex:selectList>
+				</div>
+			</div>
+			<div class="form-item-h">
+				<div class="form-cell-label def-setting-label">Folders sorting order</div>
+				<div class="form-cell-value input-200">
+					<apex:selectList value="{!foldersSortingParameter.sortingOrder}" size="1">
+						<apex:selectOption itemValue="{!ORDER_ASCENDING}" itemLabel="Ascending" />
+						<apex:selectOption itemValue="{!ORDER_DESCENDING}" itemLabel="Descending" />
+					</apex:selectList>
+				</div>
+			</div>
+			<div class="line-end"></div>
+			
+			<apex:pageMessages />
+			<apex:commandButton action="{!changeFoldersSorting}" reRender="panel_FoldersSorting" status="statusLoader" value="Save" styleClass="settings-btn" />
+		
+		</apex:outputPanel>
+		</apex:actionRegion>
+		
+		
+		<!-- Change Documents Sorting -->
+		<hr/>
+		<apex:actionRegion >
+		<apex:outputPanel id="panel_DocsSorting" layout="none">
+		
+			<h3 class="setting-header">Default sorting of documents:</h3>
+			<div class="form-item-h">
+				<div class="form-cell-label def-setting-label">Sorting field</div>
+				<div class="form-cell-value input-200">
+					<apex:selectList value="{!docsSortingParameter.name}" size="1">
+						<apex:selectOption itemValue="title" itemLabel="Title" />
+						<apex:selectOption itemValue="origin" itemLabel="Origin" />
+						<apex:selectOption itemValue="fileType" itemLabel="Type" />
+						<apex:selectOption itemValue="fileSize" itemLabel="Size, KB" />
+						<apex:selectOption itemValue="modifiedDate" itemLabel="Modified" />
+						<apex:selectOption itemValue="ownerName" itemLabel="Owner" />
+						<apex:selectOption itemValue="tagCsv" itemLabel="Tags" />
+						
+					</apex:selectList>
+				</div>
+			</div>
+			<div class="form-item-h">
+				<div class="form-cell-label def-setting-label">Sorting order</div>
+				<div class="form-cell-value input-200">
+					<apex:selectList value="{!docsSortingParameter.sortingOrder}" size="1">
+						<apex:selectOption itemValue="{!ORDER_ASCENDING}" itemLabel="Ascending" />
+						<apex:selectOption itemValue="{!ORDER_DESCENDING}" itemLabel="Descending" /> 
+					</apex:selectList>
+				</div>
+			</div>
+			<div class="line-end"></div>
+			
+			<apex:pageMessages />
+			<apex:commandButton action="{!changeDocsSorting}" reRender="panel_DocsSorting" status="statusLoader" value="Save" styleClass="settings-btn" />
+
+		</apex:outputPanel>
+		</apex:actionRegion>
+		
+		
+		<!-- Visibility of Document Columns -->
+		<hr/>
+		<apex:actionRegion >
+		<apex:outputPanel id="panel_ShowDocColumns" layout="none">
+		
+			<h3 class="setting-header">Visibility of columns in document tables:</h3>
+			<table class="docColsTable" border="1">
+				<tr>
+					<th><label for="{!$Component.ch_ShowTitle}">Title</label></th>
+					<th><label for="{!$Component.ch_ShowOrigin}">Origin</label></th>
+					<th><label for="{!$Component.ch_ShowType}">Type</label></th>
+					<th><label for="{!$Component.ch_ShowSize}">Size, KB</label></th>
+					<th><label for="{!$Component.ch_ShowModified}">Modified</label></th>
+					<th><label for="{!$Component.ch_ShowOwner}">Owner</label></th>
+					<th><label for="{!$Component.ch_ShowTags}">Tags</label></th>
+					<th><label for="{!$Component.ch_ShowActions}">Actions</label></th>
+				</tr>
+				<tr>
+					<td><apex:inputCheckbox id="ch_ShowTitle" value="{!docColumnsVisibility['title']}" disabled="true"/></td>
+					<td><apex:inputCheckbox id="ch_ShowOrigin" value="{!docColumnsVisibility['origin']}"/></td>
+					<td><apex:inputCheckbox id="ch_ShowType" value="{!docColumnsVisibility['fileType']}"/></td>
+					<td><apex:inputCheckbox id="ch_ShowSize" value="{!docColumnsVisibility['fileSize']}"/></td>
+					<td><apex:inputCheckbox id="ch_ShowModified" value="{!docColumnsVisibility['modifiedDate']}"/></td>
+					<td><apex:inputCheckbox id="ch_ShowOwner" value="{!docColumnsVisibility['ownerName']}"/></td>
+					<td><apex:inputCheckbox id="ch_ShowTags" value="{!docColumnsVisibility['tagCsv']}"/></td>
+					<td><apex:inputCheckbox id="ch_ShowActions" value="{!docColumnsVisibility['actions']}" disabled="true"/></td>
+				</tr>
+			</table>
+			
+			<apex:pageMessages />
+			<apex:commandButton action="{!changeDocColsVisibility}" reRender="panel_ShowDocColumns" status="statusLoader" value="Save" styleClass="settings-btn" />
+			
+		</apex:outputPanel>
+		</apex:actionRegion>
+	</apex:pageBlock>
+	<br/>
+	
+	
+	
+	<!-- TAGS MANAGEMENT -->
+	<apex:pageBlock title="Tags Management">
+		<!-- Use Of Tags -->
+		<apex:actionRegion >
+		<apex:outputPanel id="panel_UseOfTags">
+			<apex:actionFunction action="{!changeUseOfDocumentTags}" reRender="panel_UseOfTags" name="af_changeUseOfDocumentTags" status="statusLoader" />
+			
+			<apex:pageMessages />
+			
+			<div class="form-row">
+				<div class="form-cell-label" style="width: auto;">Use tags</div>
+				<div class="form-cell-value">
+					<apex:inputCheckbox id="cb_DocumentTagsUsed" value="{!documentTagsUsed}"/>
+				</div>
+				
+				<div class="info-panel">
+					<span title="Info" class="smf-icon-in-text16 smf-icon-info16" style="display: table-cell"></span>
+					<ul class="custom-list" style="display: table-cell">
+						<li>
+							When ON: Tags saved in folder settings are used. Documents (from Files or any Library) having matching tags
+							automatically appear in the folder.  To enable this to work, a "sync" process will copy document tags into a
+							Folderize database.
+							<span style="text-decoration: underline;">Each document having one or more tags will count once toward any
+							Folderize document limit in effect, whether or not its tags match any folder settings.</span>
+						</li>
+						<li>
+							If you want to review tags used in folders go to
+							<a href="{!$Page.SMF_TagFoldersAssociations}" class="smf-button-small">
+								<span class="smf-button-icon smf-icon-arrow"></span>Tags/Folders Overview
+							</a>
+						</li>
+					</ul>
+				</div>
+
+<script>
+	$(function()
+	{
+		$(escapeSfId("{!$Component.cb_DocumentTagsUsed}")).smfCheckboxToggle("initialize", {
+			confirmation: "Are you sure you want to change the \"Use Tags\" settings for your organization?",
+			onValueChanged: af_changeUseOfDocumentTags
+		});
+	});
+</script>
+			</div>
+
+		</apex:outputPanel>
+		</apex:actionRegion>
+		
+		
+		<!-- Reset Sync Results -->
+		<hr/>
+		<apex:actionRegion >
+		<apex:outputPanel id="panel_ResetOfSyncResults">
+			<apex:pageMessages />
+			<apex:commandButton action="{!startResetOfSyncResults}" reRender="panel_ResetOfSyncResults" status="statusLoader"
+				disabled="{!isResetOfSyncResultsStarted}" value="Re-Sync" onclick="if (!confirm('Are you sure you want to start this process?')) {return false;}" />
+			
+			<!-- description of the job is visible if its status is null -->
+			<div class="info-panel">
+				<span title="Info" class="smf-icon-in-text16 smf-icon-info16"></span>
+				Re-Sync is not needed in normal use, as synchronization usually is automatic. See the
+				<a href="{!URL_UG_LIMITS}" target="_blank">Administration Guide</a> for information about special situations when this
+				might be needed. Re-Sync will temporarily delete document and tag data in the Folderize database, and then refresh it
+				according to the current state of your organization's Content and Files collections.
+			</div>
+		</apex:outputPanel>
+		</apex:actionRegion>
+		
+		
+		<!-- Clean Unused Tags -->
+		<hr/>
+		<apex:actionRegion >
+		<apex:outputPanel id="panel_CleanUnusedTags">
+			<apex:pageMessages />
+			<apex:commandButton action="{!startCleaningOfUnusedTags}" reRender="panel_CleanUnusedTags" status="statusLoader"
+				disabled="{!isCleaningOfSmTagsStarted}" value="Clear Unused Tags" onclick="if (!confirm('Are you sure you want to start this process?')) {return false;}" />
+			
+			<!-- description of the job is visible only if its status is null -->
+			<div class="info-panel">
+				<span title="Info" class="smf-icon-in-text16 smf-icon-info16"></span>
+				Tags used previously, but no longer, are retained by default in the Folderize database. This process clears them out, which
+				may help make Folderize work a bit faster. We recommend you do this every few months or if you have made lots of changes to
+				folder tags recently.
+			</div>
+		</apex:outputPanel>
+		</apex:actionRegion>
+	</apex:pageBlock>
+	<br/>
+	
+	
+	
+	<!-- SHARING OF DOCUMENTS WITH FOLDERS -->
+	<apex:pageBlock title="Sharing Settings">
+		<apex:actionRegion >
+		<apex:outputPanel id="panel_Sharing">
+			<apex:actionFunction action="{!changeSharingOfDocsWithFolders}" name="af_changeSharingOfDocsWithFolders" reRender="panel_Sharing" status="statusLoader" />
+			
+			<apex:pageMessages />
+		
+			<div class="form-item-h">
+				<div class="form-cell-label" style="width: auto;">Documents inherit folder sharing</div>
+				<div class="form-cell-value">
+					<apex:inputCheckbox id="cb_ShareDocsWithFolders" value="{!shareDocsWithFolders}" />
+				</div>
+			</div>
+			<div class="line-end"></div>
+			
+			<div class="info-panel">
+				<span title="Info" class="smf-icon-in-text16 smf-icon-info16" style="display: table-cell"></span>
+				<ul class="custom-list" style="display: table-cell">
+					<li>When OFF, documents have permissions set by their File sharing settings or by their Library.</li>
+					<li>When ON, documents in folders also inherit sharing settings from their folder.
+						(Except this does not apply to documents appearing by tag association. See "Use Tags" above.)</li>
+					<li>Ordinarily this would be turned on only if folder sharing rules are in use (and Folder object default access has been set Private).
+						See "Set Permissions on Folders" in the <a href="{!URL_UG_FOLDER_PERMISSIONS}" target="_blank">Administration Guide</a>.
+					</li>
+					<li>
+						<span class="smf-icon-in-text16 smf-icon-warning16"></span>
+						If Folder object default access is Public (the default), turning this on will cause documents added to folders to become public
+						regardless of their File or Library sharing settings.
+					</li>
+				</ul>
+			</div>
+			
+<script>
+	$(function()
+	{
+		$(escapeSfId("{!$Component.cb_ShareDocsWithFolders}")).smfCheckboxToggle("initialize", {
+			confirmation: "Are you sure you want to change the sharing settings for your organization?",
+			onValueChanged: af_changeSharingOfDocsWithFolders
+		});
+	});
+</script>
+		
+		</apex:outputPanel>
+		</apex:actionRegion>
+	</apex:pageBlock>
+	<br/>
+	
+	
+	
+	<!-- ADVANCED SETTINGS -->
+	<apex:pageBlock id="panel_AdvancedSettings" title="Advanced Settings">
+		
+		<apex:commandLink action="{!activateAdvancedSettings}" reRender="panel_AdvancedSettings" status="statusLoader"
+			rendered="{!NOT(showAdvancedSettings)}" value="Click to show advanced settings"/>
+		
+		<apex:outputPanel rendered="{!showAdvancedSettings}">
+			<apex:actionRegion >
+				<div class="form-row">
+					<div class="form-cell-label">Maximum documents retrieved from server in one operation</div>
+					<div class="form-cell-value input-200">
+						<apex:inputText value="{!docsLimitInServerResponse}" />
+						<span class="form-note">* a correct value must be between 1000 and 30000</span>
+					</div>
+				</div>
+				<div class="line-end"></div>
+				
+				<apex:pageMessages />
+				<apex:commandButton action="{!changeDocsLimitInServerResponse}" reRender="panel_AdvancedSettings" status="statusLoader" value="Save"/>
+			</apex:actionRegion>
+		</apex:outputPanel>
+		
+	</apex:pageBlock>
+	<br/>
+	
+	
+	
+	<!-- REPORTS -->
+	<apex:pageBlock id="panel_Reports" title="Reports">
+		
+		<div class="info-panel">
+			<span title="Info" class="smf-icon-in-text16 smf-icon-info16"></span>
+			Reports are delivered as CSV files for importing into a spreadsheet program for viewing, sorting, or other analysis.
+			Reports are generated by a batch job and saved into your private library.
+			These reports encompass folders and documents for which you have viewing permission according to their sharing settings.
+			Salesforce "view all" permission will override sharing settings for reports.
+		</div>
+		<hr/>
+		
+		<apex:pageMessages />
+		
+		<!-- Settings -->
+		<div class="form-item-h">
+			<div class="form-cell-label def-setting-label">CSV Separator</div>
+			<div class="form-cell-value">
+				<apex:selectList value="{!csvOptions.separator}" size="1">
+					<apex:selectOption itemValue="," itemLabel="Comma" />
+					<apex:selectOption itemValue=";" itemLabel="Semicolon" />
+					<apex:selectOption itemValue="space" itemLabel="Space" />
+					<apex:selectOption itemValue="tab" itemLabel="Tab" /> 
+				</apex:selectList>
+			</div>
+		</div>
+		<div class="line-end"></div>
+		<hr/>
+		
+		<!-- Folders Report -->
+		<apex:commandButton action="{!requestReport_FoldersReport}" reRender="panel_Reports" status="statusLoader"
+			disabled="{!isRQueued_FoldersReport}" value="Request Folders Report"
+			onclick="if (!confirm('Are you sure you want to request this report?')) {return false;}" />
+		
+		<div class="info-panel">
+			<span title="Info" class="smf-icon-in-text16 smf-icon-info16"></span>
+			This report lists all your folders and subfolders with their properties such as path, tags, etc.
+			This report does not list documents.
+		</div> 
+		<hr/>
+		
+		<!-- Documents in Folders Report -->
+		<apex:commandButton action="{!requestReport_DocsInFolders}" reRender="panel_Reports" status="statusLoader"
+			disabled="{!isRQueued_DocsInFolders}" value="Request 'Documents in Folders' Report"
+			onclick="if (!confirm('Are you sure you want to request this report?')) {return false;}" />
+		
+		<div class="info-panel">
+			<span title="Info" class="smf-icon-in-text16 smf-icon-info16"></span>
+			This report lists Folderize documents with their properties such as folder path, date, owner, etc.
+			Use Fast Mode if your folders have less than 2000 documents each.
+			Use Comprehensive mode if any folder has more than 2000 documents. Comprehensive mode can list up to 24000 documents per folder.
+		</div>
+		
+		<div class="form-cell-value" style="padding-left: 0;">
+			<apex:selectRadio value="{!docsReportBuilder_Mode}">
+				<apex:selectOption itemValue="fast" itemLabel="Fast Mode" />
+				<apex:selectOption itemValue="comprehensive" itemLabel="Comprehensive Mode" />
+			</apex:selectRadio>
+		</div>
+		<hr/>
+		
+		<!-- Documents NOT in Folders Report -->
+		<apex:commandButton action="{!requestReport_DocsNotInFolders}" reRender="panel_Reports" status="statusLoader"
+			disabled="{!isRQueued_DocsNotInFolders}" value="Request 'Documents NOT in Folders' Report"
+			onclick="if (!confirm('Are you sure you want to request this report?')) {return false;}" />
+		
+		<div class="info-panel">
+			<span title="Info" class="smf-icon-in-text16 smf-icon-info16"></span>
+			This report lists documents from Salesforce Libraries or Files that are <u>not</u> visible in any folder.
+		</div>
+		
+	</apex:pageBlock>
+	<br/>
+	
+</apex:form>
+	
+</apex:page>

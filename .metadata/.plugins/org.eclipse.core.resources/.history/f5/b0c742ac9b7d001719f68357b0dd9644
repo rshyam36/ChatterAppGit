@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>KRac_AutoFollowRecords_TriggerHandler</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>KRac_AutoFollowRecords_AccountTrigger</members>
+        <name>ApexTrigger</name>
+    </types>
+    <types>
+        <members>Auto_Follow_on_Chatter</members>
+        <name>CustomApplication</name>
+    </types>
+    <types>
+        <members>Auto_Follow_Rule__c</members>
+        <members>Rule_Criteria__c</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
+        <members>Auto_Follow_Rule__c</members>
+        <members>Rule_Criteria__c</members>
+        <name>CustomTab</name>
+    </types>
+    <version>36.0</version>
+</Package>

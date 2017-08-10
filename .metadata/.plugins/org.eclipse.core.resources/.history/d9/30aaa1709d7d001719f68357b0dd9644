@@ -1,0 +1,29 @@
+/*
+Written By: Radhe Shyam(rshyam@kloudrac.com)
+Date: August 8, 2017
+Description: Handler class for "KRac_AutoFollowRecords_AccountTrigger" trigger.
+*/
+
+
+public class KRac_AutoFollowRecords_TriggerHandler{
+
+            public static void ReadValuesFromRule(List<Account> ListOfAccounts){
+                
+                
+                //List<Auto_Follow_Rule__c> lstAccountRules = new  List<Auto_Follow_Rule__c>([Select id, Name, Filter_Logic__c,Evaluation_Criteria__c, Description__c from Auto_Follow_Rule__c
+                  // where Object__c ='Account' and IsActive__c= true]);
+                
+                List<Auto_Follow_Rule__c> lstAccountRules = new  List<Auto_Follow_Rule__c>( [Select a.OwnerId, a.Object__c, a.Name, a.IsActive__c, a.Id, a.Filter_Logic__c, a.Evaluation_Criteria__c, a.Description__c, (Select Id, Name, Auto_Follow_Rule__c, Fields__c, Operator__c, Sequence_No__c, Value__c From Rule_Criterias__r) From Auto_Follow_Rule__c a  ]);
+                  System.debug('Account Rule Details :2');
+            	  System.debug('Account Rule Details :1'+ json.serialize(lstAccountRules)  );
+				
+            }
+    
+    
+            private String ConvertTextIntoOperators(){
+                
+                return null;
+                
+            }
+
+}
